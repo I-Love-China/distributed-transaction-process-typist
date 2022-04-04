@@ -105,6 +105,7 @@ public final class FactoryBuilder {
                                 if (beanFactory.isFactoryOf(clazz)) {
                                     // 找到实例后，保存起来
                                     instance = (T) beanFactory.getBean(clazz);
+                                    break;
                                 }
                             }
                         } catch (Exception e) {
