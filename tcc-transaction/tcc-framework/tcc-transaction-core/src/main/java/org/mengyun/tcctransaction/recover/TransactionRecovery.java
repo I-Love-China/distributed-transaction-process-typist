@@ -24,7 +24,7 @@ public class TransactionRecovery {
      * TCC事务配置器.
      */
     private TransactionConfigurator transactionConfigurator;
-    
+
     /**
      * 设置事务配置器.
      * @param transactionConfigurator
@@ -51,7 +51,7 @@ public class TransactionRecovery {
 
         TransactionRepository transactionRepository = transactionConfigurator.getTransactionRepository();
 
-        long currentTimeInMillis = Calendar.getInstance().getTimeInMillis();
+        long currentTimeInMillis = System.currentTimeMillis();
 
         List<Transaction> transactions = transactionRepository.findAllUnmodifiedSince(new Date(currentTimeInMillis - transactionConfigurator.getRecoverConfig().getRecoverDuration() * 1000));
 
@@ -65,7 +65,7 @@ public class TransactionRecovery {
                 recoverTransactions.add(transaction);
             }
         }
-        
+
         // 日志输出，调试用
         if (!transactions.isEmpty()){
         	logger.debug("==>loadErrorTransactions transactions size:" + transactions.size());
@@ -74,7 +74,7 @@ public class TransactionRecovery {
         return recoverTransactions;
     }
 
-    
+
     /**
      * 恢复错误的事务.
      * @param transactions
@@ -105,7 +105,7 @@ public class TransactionRecovery {
                     transactionConfigurator.getTransactionRepository().update(transaction);
                     transaction.rollback();
                 }
-                
+
                 // 其他情况下，超时没处理的事务日志直接删除
                 transactionConfigurator.getTransactionRepository().delete(transaction);
             } catch (Throwable e) {
