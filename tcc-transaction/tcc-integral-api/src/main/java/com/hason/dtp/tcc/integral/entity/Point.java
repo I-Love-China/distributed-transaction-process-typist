@@ -16,8 +16,8 @@ import javax.persistence.*;
 public class Point {
 
     @Id
-    @SequenceGenerator(name = "point_seq", sequenceName = "point_id_seq", allocationSize = 1)
-    @GeneratedValue(generator = "point_seq", strategy = GenerationType.SEQUENCE)
+//    @SequenceGenerator(name = "point_seq", sequenceName = "point_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     private Long userId;

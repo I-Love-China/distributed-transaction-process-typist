@@ -1,5 +1,6 @@
 package com.hason.dtp.tcc.integral;
 
+import org.apache.log4j.BasicConfigurator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -16,6 +17,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 public class TccIntegralApplication {
 
     public static void main(String[] args) {
+        BasicConfigurator.configure();
         SpringApplication.run(TccIntegralApplication.class, args);
     }
 

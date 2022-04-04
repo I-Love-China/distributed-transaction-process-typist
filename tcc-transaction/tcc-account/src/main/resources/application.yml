@@ -7,24 +7,24 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:postgresql://localhost:5432/tcc_user
-    username: postgres
+    url: jdbc:mysql://localhost:3306/tcc_user
+    username: root
     password: 123456
     # 使用druid数据源
     type: com.alibaba.druid.pool.DruidDataSource
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: com.mysql.jdbc.Driver
 
     initialize: false             # 是否初始化
-    platform: postgresql          # 指定数据源类型
+    platform: mysql          # 指定数据源类型
     schema: classpath:schema.sql  # 指定建表脚本
 #    data: classpath:data.sql      # 指定数据脚本
 
     # 配置 TCC框架使用的数据源
     tcc:
-      url: jdbc:postgresql://localhost:5432/tcc
-      username: postgres
+      url: jdbc:mysql://localhost:3306/TCC
+      username: root
       password: 123456
-      driver-class-name: org.postgresql.Driver
+      driver-class-name: com.mysql.jdbc.Driver
       # 使用druid数据源
       type: com.alibaba.druid.pool.DruidDataSource
 

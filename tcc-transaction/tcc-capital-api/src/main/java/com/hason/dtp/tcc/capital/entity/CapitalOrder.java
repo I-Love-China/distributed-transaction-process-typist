@@ -18,8 +18,8 @@ import java.math.BigDecimal;
 public class CapitalOrder {
 
     @Id
-    @SequenceGenerator(name = "capital_order_seq", sequenceName = "capital_order_id_seq", allocationSize = 1)
-    @GeneratedValue(generator = "capital_order_seq", strategy = GenerationType.SEQUENCE)
+//    @SequenceGenerator(name = "capital_order_seq", sequenceName = "capital_order_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     private Long userId;

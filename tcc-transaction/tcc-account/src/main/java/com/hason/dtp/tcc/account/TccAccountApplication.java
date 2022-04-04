@@ -1,5 +1,6 @@
 package com.hason.dtp.tcc.account;
 
+import org.apache.log4j.BasicConfigurator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
@@ -18,6 +19,7 @@ import org.springframework.cloud.netflix.feign.EnableFeignClients;
 public class TccAccountApplication {
 
     public static void main(String[] args) {
+        BasicConfigurator.configure();
         SpringApplication.run(TccAccountApplication.class, args);
     }
 

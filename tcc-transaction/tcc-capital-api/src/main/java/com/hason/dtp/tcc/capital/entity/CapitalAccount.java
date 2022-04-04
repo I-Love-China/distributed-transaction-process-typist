@@ -17,8 +17,8 @@ import java.math.BigDecimal;
 public class CapitalAccount {
 
     @Id
-    @SequenceGenerator(name = "capital_account_seq", sequenceName = "capital_account_id_seq", allocationSize = 1)
-    @GeneratedValue(generator = "capital_account_seq", strategy = GenerationType.SEQUENCE)
+//    @SequenceGenerator(name = "capital_account_seq", sequenceName = "capital_account_id_seq", allocationSize = 1)
+    @GeneratedValue( strategy = GenerationType.AUTO)
     private Long id;
 
     private BigDecimal balanceAmount;
