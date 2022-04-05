@@ -2,62 +2,85 @@
 'https://plantuml.com/sequence-diagram
 participant User
 participant ROOT
-participant CompensableTransactionInterceptor as COMP_IPTR
-participant ResourceCoordinatorInterceptor as RC_ITPR
-participant TransactionManager as TrxManager
-participant BRANCH_1_FEIGN
+
+participant CompensableTransactionInterceptor as COMP_IPTR_ROOT
+participant ResourceCoordinatorInterceptor as RC_ITPR_ROOT
+participant TransactionManager as TrxManager_Root
+participant BRANCH_1_FEIGN_PROXY
+participant CompensableTransactionInterceptor_BRANCH as COMP_IPTR_BRANCH
+participant ResourceCoordinatorInterceptor_BRANCH as RC_ITPR_BRANCH
+participant TransactionManager_BRANCH as TrxManager_BRANCH
 participant BRANCH_1_SERVICE
 
 User -> ROOT: 发起业务请求
 
 == TRYING ==
-ROOT -> COMP_IPTR: begin Transaction
-ROOT <-- COMP_IPTR: Transaction created
-ROOT -> RC_ITPR: build confirmInvocation & cancelInvocation
-ROOT <-- COMP_IPTR: confirmInvocation & cancelInvocation
-ROOT -> RC_ITPR: build Participant with xid and Terminator(confirmInvocation, cancelInvocation) & enlist to Transaction
-ROOT <-- RC_ITPR: built & enlisted
-
-== ROOT -> BRANCH_1_FEIGN: generateAndEnlistConsumerParticipant ==
-ROOT -> RC_ITPR: build TrxCtx with xid and TransactionStatus
-ROOT <-- RC_ITPR: TrxCtx built
-ROOT -> RC_ITPR: build confirmInvocation & cancelInvocation
-ROOT <-- RC_ITPR: confirmInvocation & cancelInvocation
-ROOT -> RC_ITPR: build Consumer Participant with xid and Terminator & enlist
-ROOT <-- RC_ITPR: built & enlisted
-
-' 此时 BRANCH_1_FEIGN 应该是 MethodType.NORMAL，所以不会被 TccCompensableAspect 拦截
-BRANCH_1_FEIGN <- RC_ITPR: pjp.proceed()
-BRANCH_1_FEIGN -> BRANCH_1_SERVICE: 调用业务逻辑
-
-' 此时 BRANCH_1_SERVICE 是 MethodType.PROVIDER, providerMethodProceed
-BRANCH_1_SERVICE -> COMP_IPTR: propagationNewBegin()
-BRANCH_1_SERVICE <-- COMP_IPTR: BRANCH Transaction created
-BRANCH_1_SERVICE -> BRANCH_1_SERVICE: trying biz logic
-BRANCH_1_SERVICE --> BRANCH_1_FEIGN: biz logic done
-
-BRANCH_1_FEIGN --> ROOT:
+' 1.1.1 TccCompensableAspect BEFORE
+ROOT -> COMP_IPTR_ROOT: rootMethodProceed()
+COMP_IPTR_ROOT -> TrxManager_Root: begin Transaction
+COMP_IPTR_ROOT <-- TrxManager_Root: RootTransaction created
 
 
+' 1.1.2 TccTransactionContextAspect BEFORE
+COMP_IPTR_ROOT -> RC_ITPR_ROOT: generateAndEnlistRootParticipant()
+RC_ITPR_ROOT -> RC_ITPR_ROOT: build confirmInvocation & cancelInvocation
+RC_ITPR_ROOT -> RC_ITPR_ROOT: build RootParticipant with xid and Terminator
+RC_ITPR_ROOT -> TrxManager_Root: enlist RootParticipant
+RC_ITPR_ROOT <-- TrxManager_Root: RootParticipant enlisted
+RC_ITPR_ROOT --> COMP_IPTR_ROOT: pjp.proceed()
+
+' 1.1.3 ROOT 调用 BRANCH TRANSACTION
+' 1.1.3.1 首先 TccTransactionContextAspect BEFORE
+COMP_IPTR_ROOT -> RC_ITPR_ROOT: generateAndEnlistConsumerParticipant()
+RC_ITPR_ROOT -> RC_ITPR_ROOT: build TransactionContext with Xid and TransactionStatus
+RC_ITPR_ROOT -> RC_ITPR_ROOT: build confirmInvocation & cancelInvocation
+RC_ITPR_ROOT -> RC_ITPR_ROOT: build BranchParticipant with xid and Terminator
+RC_ITPR_ROOT -> TrxManager_Root: enlist BranchParticipant
+RC_ITPR_ROOT <-- TrxManager_Root: BranchParticipant enlisted
+RC_ITPR_ROOT --> COMP_IPTR_ROOT: pjp.proceed()
+
+COMP_IPTR_ROOT -> BRANCH_1_FEIGN_PROXY: invoke with TransactionContext and other args
+
+BRANCH_1_FEIGN_PROXY -> COMP_IPTR_BRANCH: providerMethodProceed() TRYING
+COMP_IPTR_BRANCH -> TrxManager_BRANCH: propagationNewBegin()
+COMP_IPTR_BRANCH <-- TrxManager_BRANCH: BranchTransaction created
+COMP_IPTR_BRANCH -> RC_ITPR_BRANCH: generateAndEnlistProviderParticipant()
+RC_ITPR_BRANCH -> RC_ITPR_BRANCH: build confirmInvocation & cancelInvocation
+' todo 这里的 Participant
+RC_ITPR_BRANCH -> RC_ITPR_BRANCH: build Participant with xid and Terminator
+RC_ITPR_BRANCH -> TrxManager_BRANCH: enlist Participant
+RC_ITPR_BRANCH <-- TrxManager_BRANCH: Participant enlisted
+RC_ITPR_BRANCH --> COMP_IPTR_BRANCH: pjp.proceed()
+
+COMP_IPTR_BRANCH -> BRANCH_1_SERVICE: invoke trying with TransactionContext and other args
+COMP_IPTR_BRANCH <-- BRANCH_1_SERVICE: return
+COMP_IPTR_BRANCH --> BRANCH_1_FEIGN_PROXY: return
 == CONFIRMING ==
-ROOT -> COMP_IPTR: commit()
-COMP_IPTR -> TrxManager: commit
-TrxManager -> TrxManager: set Transaction status to CONFIRMING
-TrxManager -> TrxManager: get participants and call confirmInvocation
+BRANCH_1_FEIGN_PROXY --> COMP_IPTR_ROOT: SUCCESS
+COMP_IPTR_ROOT -> TrxManager_Root: commit Transaction
+TrxManager_Root -> TrxManager_Root: change TransactionStatus to CONFIRMING
+TrxManager_Root -> TrxManager_Root: get Participants and invoke their confirmInvocation
 
-' 此时 BRANCH_1_FEIGN 是 NORMAL
-TrxManager -> BRANCH_1_FEIGN: call by confirmInvocation
-BRANCH_1_FEIGN <- RC_ITPR: pjp.proceed()
-BRANCH_1_FEIGN -> BRANCH_1_SERVICE: 调用业务逻辑
+' invoke BRANCH_1_FEIGN_PROXY
+TrxManager_Root -> RC_ITPR_ROOT: interceptTransactionContextMethod()
+' 此时 TransactionContext != null，此时 MethodType 为 NORMAL ！！！
+TrxManager_Root <-- RC_ITPR_ROOT: pjp.proceed()
+TrxManager_Root -> BRANCH_1_FEIGN_PROXY: invoke with TransactionContext and other args
+BRANCH_1_FEIGN_PROXY -> COMP_IPTR_BRANCH: providerMethodProceed() CONFIRMING
+COMP_IPTR_BRANCH -> TrxManager_BRANCH: propagationExistBegin()
+TrxManager_BRANCH -> TrxManager_BRANCH: change TransactionStatus to CONFIRMING
+TrxManager_BRANCH --> COMP_IPTR_BRANCH:
+COMP_IPTR_BRANCH -> TrxManager_BRANCH: commit Transaction
+' 这里只有一个 Participant，就是 BranchTransaction 自己
+TrxManager_BRANCH -> TrxManager_BRANCH: get participants and invoke their confirmInvocation
+TrxManager_BRANCH -> BRANCH_1_SERVICE: invoke confirming with TransactionContext and other args
+TrxManager_BRANCH <-- BRANCH_1_SERVICE: return
+TrxManager_BRANCH --> COMP_IPTR_BRANCH: return
+COMP_IPTR_BRANCH --> BRANCH_1_FEIGN_PROXY: return
 
-BRANCH_1_SERVICE -> COMP_IPTR: propagationExistBegin()
-BRANCH_1_SERVICE -> COMP_IPTR: commit()
-COMP_IPTR -> TrxManager: delete BRANCH Transaction
-BRANCH_1_SERVICE -> BRANCH_1_SERVICE: confirming biz logic
-BRANCH_1_SERVICE --> BRANCH_1_FEIGN: confirming biz logic done
-BRANCH_1_FEIGN --> ROOT: done
-
-ROOT -> TrxManager: delete ROOT Transaction
+BRANCH_1_FEIGN_PROXY --> TrxManager_Root: return
+TrxManager_Root --> COMP_IPTR_ROOT: return
+COMP_IPTR_ROOT --> ROOT: done
 ROOT --> User: done
 
 == CANCELLING ==
