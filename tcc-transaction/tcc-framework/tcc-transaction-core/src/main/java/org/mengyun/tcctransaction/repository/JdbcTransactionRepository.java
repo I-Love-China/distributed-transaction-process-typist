@@ -133,6 +133,7 @@ public class JdbcTransactionRepository extends CachableTransactionRepository {
             stmt.setInt(4, transaction.getRetriedCount());
             stmt.setBytes(5, transaction.getXid().getGlobalTransactionId());
             stmt.setBytes(6, transaction.getXid().getBranchQualifier());
+            // 在方法开始时执行了 updateVersion，所以这里需要减一
             stmt.setLong(7, transaction.getVersion() - 1);
 
             if (StringUtils.isNotEmpty(domain)) {

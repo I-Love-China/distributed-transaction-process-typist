@@ -59,6 +59,8 @@ public class TransactionRecovery {
 
         for (Transaction transaction : transactions) {
         	// 检验记录是否已经被修改（版本校验）
+            // org.mengyun.tcctransaction.repository.JdbcTransactionRepository.doUpdate
+            // TransacrionRepository 的乐观锁机制，doUpdate 中会自动添加 updateTime、updateVersion 逻辑
             int result = transactionRepository.update(transaction);
 
             if (result > 0) {
