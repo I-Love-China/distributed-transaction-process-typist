@@ -48,6 +48,7 @@ public class ResourceCoordinatorInterceptor {
         Transaction transaction = transactionConfigurator.getTransactionManager().getCurrentTransaction();
         
         // Trying(判断是否Try阶段的事务)
+        // 只需要拦截 TRYING 阶段的事务，因为在此阶段会封装 confirmInvocation、cancelInvocation，这两个 InvocationContext 中已经封装了调用参数，其参数与 TRYING 阶段的相同
         if (transaction != null && transaction.getStatus().equals(TransactionStatus.TRYING)) {
         	LOG.debug("==>TransactionStatus:" + transaction.getStatus().toString());
         	// 从参数获取事务上下文
