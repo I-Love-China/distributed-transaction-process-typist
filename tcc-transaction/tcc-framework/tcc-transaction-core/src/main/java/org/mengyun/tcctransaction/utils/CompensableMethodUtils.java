@@ -63,8 +63,8 @@ public class CompensableMethodUtils {
 
         for (Object arg : args) {
             if (arg != null && org.mengyun.tcctransaction.api.TransactionContext.class.isAssignableFrom(arg.getClass())) {
-
                 transactionContext = (org.mengyun.tcctransaction.api.TransactionContext) arg;
+                break;
             }
         }
 
