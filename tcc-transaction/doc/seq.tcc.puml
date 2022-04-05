@@ -87,10 +87,14 @@ TrxManager_BRANCH -> TrxManager_BRANCH: get participants and invoke their confir
 TrxManager_BRANCH -> BRANCH_1_SERVICE: invoke confirming with TransactionContext and other args
 TrxManager_BRANCH <-- BRANCH_1_SERVICE: return
 TrxManager_BRANCH --> COMP_IPTR_BRANCH: return
+COMP_IPTR_BRANCH -> TrxManager_BRANCH: delete BranchTransaction
+COMP_IPTR_BRANCH <-- TrxManager_BRANCH: BranchTransaction deleted
 COMP_IPTR_BRANCH --> BRANCH_1_FEIGN_PROXY: return
 
 BRANCH_1_FEIGN_PROXY --> TrxManager_Root: return
 TrxManager_Root --> COMP_IPTR_ROOT: return
+COMP_IPTR_ROOT -> TrxManager_Root: delete RootTransaction
+COMP_IPTR_ROOT <-- TrxManager_Root: RootTransaction deleted
 COMP_IPTR_ROOT --> ROOT: done
 ROOT --> User: done
 
