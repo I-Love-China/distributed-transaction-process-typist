@@ -1,0 +1,65 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+participant User
+participant ROOT
+participant CompensableTransactionInterceptor as COMP_IPTR
+participant ResourceCoordinatorInterceptor as RC_ITPR
+participant TransactionManager as TrxManager
+participant BRANCH_1_FEIGN
+participant BRANCH_1_SERVICE
+
+User -> ROOT: 发起业务请求
+
+== TRYING ==
+ROOT -> COMP_IPTR: begin Transaction
+ROOT <-- COMP_IPTR: Transaction created
+ROOT -> RC_ITPR: build confirmInvocation & cancelInvocation
+ROOT <-- COMP_IPTR: confirmInvocation & cancelInvocation
+ROOT -> RC_ITPR: build Participant with xid and Terminator(confirmInvocation, cancelInvocation) & enlist to Transaction
+ROOT <-- RC_ITPR: built & enlisted
+
+== ROOT -> BRANCH_1_FEIGN: generateAndEnlistConsumerParticipant ==
+ROOT -> RC_ITPR: build TrxCtx with xid and TransactionStatus
+ROOT <-- RC_ITPR: TrxCtx built
+ROOT -> RC_ITPR: build confirmInvocation & cancelInvocation
+ROOT <-- RC_ITPR: confirmInvocation & cancelInvocation
+ROOT -> RC_ITPR: build Consumer Participant with xid and Terminator & enlist
+ROOT <-- RC_ITPR: built & enlisted
+
+' 此时 BRANCH_1_FEIGN 应该是 MethodType.NORMAL，所以不会被 TccCompensableAspect 拦截
+BRANCH_1_FEIGN <- RC_ITPR: pjp.proceed()
+BRANCH_1_FEIGN -> BRANCH_1_SERVICE: 调用业务逻辑
+
+' 此时 BRANCH_1_SERVICE 是 MethodType.PROVIDER, providerMethodProceed
+BRANCH_1_SERVICE -> COMP_IPTR: propagationNewBegin()
+BRANCH_1_SERVICE <-- COMP_IPTR: BRANCH Transaction created
+BRANCH_1_SERVICE -> BRANCH_1_SERVICE: trying biz logic
+BRANCH_1_SERVICE --> BRANCH_1_FEIGN: biz logic done
+
+BRANCH_1_FEIGN --> ROOT:
+
+
+== CONFIRMING ==
+ROOT -> COMP_IPTR: commit()
+COMP_IPTR -> TrxManager: commit
+TrxManager -> TrxManager: set Transaction status to CONFIRMING
+TrxManager -> TrxManager: get participants and call confirmInvocation
+
+' 此时 BRANCH_1_FEIGN 是 NORMAL
+TrxManager -> BRANCH_1_FEIGN: call by confirmInvocation
+BRANCH_1_FEIGN <- RC_ITPR: pjp.proceed()
+BRANCH_1_FEIGN -> BRANCH_1_SERVICE: 调用业务逻辑
+
+BRANCH_1_SERVICE -> COMP_IPTR: propagationExistBegin()
+BRANCH_1_SERVICE -> COMP_IPTR: commit()
+COMP_IPTR -> TrxManager: delete BRANCH Transaction
+BRANCH_1_SERVICE -> BRANCH_1_SERVICE: confirming biz logic
+BRANCH_1_SERVICE --> BRANCH_1_FEIGN: confirming biz logic done
+BRANCH_1_FEIGN --> ROOT: done
+
+ROOT -> TrxManager: delete ROOT Transaction
+ROOT --> User: done
+
+== CANCELLING ==
+
+@enduml
