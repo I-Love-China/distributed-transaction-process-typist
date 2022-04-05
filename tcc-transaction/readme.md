@@ -17,15 +17,13 @@
 ### 初始化
 
 1. 下载[完整项目](https://github.com/HasonHuang/distributed-transaction-process)
-2. 执行[dbscripts](dbscripts)目录下的sql脚本（PostgreSQL）创建数据库。
-3. 修改`tcc-account`的TCC数据源、业务系统数据源
-4. 修改`tcc-integral`的TCC数据源、业务系统数据源
+2. 执行[dbscripts/mysql](dbscripts)目录下的sql脚本（MySQL）创建数据库。
 
 ### 单层嵌套事务
 
 #### 业务流程
 
-1. 打开注册页面 http://localhost:9000/users/register
+1. 打开注册页面 http://localhost:9000/register
 2. 输入用户信息并注册
 3. 系统创建用户，同时创建资金账户和积分账户，其中一个创建失败都将会引起事务回退；
 
@@ -38,7 +36,7 @@
 
 ### 多层嵌套事务
 
-1. 打开充值页面 http://localhost:9000/users/recharge
+1. 打开充值页面 http://localhost:9000/recharge
 2. 输入用户名和充值金额进行充值
 3. `tcc-account`调用微服务`tcc-capital`生成订单并增加资金，后者操作成功后调用积分服务`tcc-integral`增加积分。
 
